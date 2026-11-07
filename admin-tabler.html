@@ -348,11 +348,11 @@ function renderCharts(){
   const statuses=["Pendente","Pago","Separado","Enviado / Retirada","Entregue","Cancelado"];
   const ordCounts=statuses.map(s=>state.orders.filter(o=>o.status===s).length);
   const bands=[active.filter(p=>(p.estoque||0)===0).length, active.filter(p=>(p.estoque||0)>0&&(p.estoque||0)<=5).length, active.filter(p=>(p.estoque||0)>5).length];
-  const base={chart:{height:280,toolbar:{show:true},animations:{enabled:true}},colors:["#c2571f","#1e7a4c","#2b6cb0","#8a5a00","#6b5ce7","#b42318"]};
-  function mk(id,opts){ const el=document.getElementById(id); if(!el) return; if(_charts[id]) _charts[id].destroy(); _charts[id]=new ApexCharts(el,Object.assign({},base,opts)); _charts[id].render(); }
+  const base={colors:["#c2571f","#1e7a4c","#2b6cb0","#8a5a00","#6b5ce7","#b42318"]};
+  function mk(id,opts){ const el=document.getElementById(id); if(!el) return; if(_charts[id]) _charts[id].destroy(); opts.chart=Object.assign({height:280,toolbar:{show:true},animations:{enabled:true}},opts.chart||{}); _charts[id]=new ApexCharts(el,Object.assign({},base,opts)); _charts[id].render(); }
   mk("chartCat",{chart:{type:"donut"},series:counts,labels:cats,legend:{position:"bottom"},dataLabels:{enabled:true}});
-  mk("chartStockVal",{chart:{type:"bar"},series:[{name:"Valor em estoque (R$)",data:vals}],xaxis:{categories:cats},yaxis:{labels:{formatter:function(v){return "R$ "+Number(v).toLocaleString("pt-BR");}}},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:6,distributed:true}}});
-  mk("chartOrders",{chart:{type:"bar"},series:[{name:"Pedidos",data:ordCounts}],xaxis:{categories:statuses},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:6,distributed:true}}});
+  mk("chartStockVal",{chart:{type:"bar"},series:[{name:"Valor em estoque (R$)",data:vals}],xaxis:{categories:cats},yaxis:{min:0,max:Math.max(1000,Math.max.apply(null,vals)*1.15),labels:{formatter:function(v){return "R$ "+Number(Math.round(v)).toLocaleString("pt-BR");}}},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:6,columnWidth:"55%"}}});
+  mk("chartOrders",{chart:{type:"bar"},series:[{name:"Pedidos",data:ordCounts}],xaxis:{categories:statuses},yaxis:{min:0,max:Math.max(5,Math.max.apply(null,ordCounts)*1.2),tickAmount:5,labels:{formatter:function(v){return String(Math.round(v));}}},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:6,columnWidth:"55%"}}});
   mk("chartStockBand",{chart:{type:"donut"},series:bands,labels:["Zerado","Baixo (1-5)","OK (6+)"],colors:["#b42318","#d9a441","#1e7a4c"],legend:{position:"bottom"},dataLabels:{enabled:true}});
   const n=document.getElementById("chartOrdersNote"); if(n) n.textContent = state.orders.length ? state.orders.length+" pedido(s) registrado(s) no total." : "Nenhum pedido registrado ainda - o gráfico fica zerado até o primeiro pedido.";
 }
