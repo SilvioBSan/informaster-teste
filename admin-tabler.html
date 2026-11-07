@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informaster — Painel Administrativo</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/css/tabler.min.css">
+<style>
+:root{--terra:#c2571f;--terra2:#a84415;--brown:#1a1d29;--green:#1e7a4c;--red:#b42318;--amber:#8a5a00}
+/* Tabler shell in Informaster colours */
+.navbar-vertical{background:linear-gradient(180deg,#1a1d29 0%,#232838 100%)}
+.navbar-vertical .navbar-brand{color:#fff;font-weight:800}
+.navbar-vertical .nav-link{color:rgba(255,255,255,.82);border-radius:8px;margin:2px 8px}
+.navbar-vertical .nav-link:hover{background:rgba(255,255,255,.10);color:#fff}
+.navbar-vertical .nav-link.active{background:linear-gradient(90deg,#c2571f,#e07b39);color:#fff;box-shadow:0 4px 14px rgba(194,87,31,.45)}
+.page-header{border-bottom:1px solid #e6e8f0}
+.btn-terra{background:linear-gradient(90deg,#c2571f,#e07b39);color:#fff;border:0;box-shadow:0 4px 14px rgba(194,87,31,.35)}
+.btn-terra:hover{color:#fff;filter:brightness(1.08)}
+.kpi-card{border-top:3px solid var(--terra);border-radius:12px;box-shadow:0 2px 10px rgba(16,24,40,.06)}
+.kpi-card .kpi-value{font-size:30px;font-weight:800;line-height:1.1}
+.kpi-card .kpi-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:#fff}
+/* Keep the panel's own components working on top of Tabler/Bootstrap */
+.card{background:#fff;border:1px solid #e6e8f0;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(16,24,40,.04)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font:inherit}
+textarea{min-height:70px} .row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.row>*{flex:1;min-width:160px} .row .small{flex:0 0 120px}
+button.btn{background:var(--terra);color:#fff;border:0;padding:11px 16px;border-radius:9px;cursor:pointer;font-weight:700}
+button.btn:hover{background:var(--terra2)} button.ghost{background:#fff;color:#222;border:1px solid #ccc;padding:8px 12px;border-radius:8px;cursor:pointer}
+button.danger{background:var(--red);color:#fff;border:0;padding:11px 16px;border-radius:9px;cursor:pointer;font-weight:700} button.ok{background:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:14px} th,td{padding:9px 8px;border-bottom:1px solid #e6e8f0;text-align:left;vertical-align:top}
+th{color:#555} .thumb{width:52px;height:52px;object-fit:cover;border-radius:8px;background:#eee}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#eee;color:#222}
+.badge.green{background:#dff3e6;color:var(--green)} .badge.red{background:#fde3e0;color:var(--red)} .badge.amber{background:#fff1cc;color:var(--amber)}
+.muted{color:#666;font-size:13px} .warn{background:#fff7e0;border:1px solid #f0d48a;border-radius:10px;padding:12px;margin-bottom:14px}
+.bar{height:10px;background:#eee;border-radius:99px;overflow:hidden} .bar i{display:block;height:100%;background:var(--terra)}
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;place-items:center;padding:16px;z-index:1050}
+.modal-back.open{display:grid} .modal{background:#fff;border-radius:14px;max-width:720px;width:100%;max-height:92vh;overflow:auto;padding:18px}
+.pin-back{position:fixed;inset:0;background:#1a1d29;display:grid;place-items:center;padding:20px;z-index:2000}
+.pin-box{background:#fff;border-radius:16px;padding:24px;max-width:420px;width:100%;text-align:center}
+.logo{width:46px;height:46px;border-radius:10px;background:var(--terra);display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff}
+.chart-wrap{position:relative;height:280px}
+@media(max-width:640px){table{font-size:13px} .hide-m{display:none}}
+</style>
+</head>
+<body>
+<div class="pin-back" id="pinBack">
+  <div class="pin-box">
+    <div class="logo" style="margin:0 auto 10px">IM</div>
+    <h2 style="margin:0">Painel da Informaster</h2>
+    <p class="muted" id="pinText">Defina um PIN para este painel neste aparelho.</p>
+    <label style="text-align:left">PIN (mín. 4 dígitos — deixe em branco para entrar sem PIN)</label>
+    <input id="pinInput" type="password" inputmode="numeric" placeholder="Ex.: 1234" autocomplete="off">
+    <div style="margin-top:14px"><button class="btn" style="width:100%" onclick="pinSubmit()">Entrar no painel</button></div>
+    <p class="muted" id="pinForgotWrap" style="display:none;margin-top:12px"><button class="ghost" style="border:0;background:none;text-decoration:underline;cursor:pointer" onclick="pinForgot()">Esqueci o PIN — apagar dados locais e recomeçar</button></p>
+    <p class="muted">Atenção: este PIN só protege o painel neste navegador. Ele <b>não</b> é segurança real de servidor — <b>não publique este arquivo no site público</b>. Use-o localmente e publique só a loja atualizada.</p>
+  </div>
+</div>
+
+<div class="page">
+  <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Menu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <h1 class="navbar-brand navbar-brand-autodark">
+        <a href="#" onclick="showTab('dashboard');return false;"><span class="logo" style="width:34px;height:34px;font-size:14px;display:inline-grid;vertical-align:middle;margin-right:8px">IM</span>Informaster</a>
+      </h1>
+      <div class="collapse navbar-collapse" id="sidebar-menu">
+        <ul class="navbar-nav pt-lg-3">
+          <li class="nav-item"><a href="#" class="nav-link active" data-tab="dashboard" onclick="showTab('dashboard');return false;"><span class="nav-link-icon d-md-none d-lg-inline-block"><i class="bi bi-speedometer2"></i></span><span class="nav-link-title">Visão geral</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link" data-tab="produtos" onclick="showTab('produtos');return false;"><span class="nav-link-icon d-md-none d-lg-inline-block"><i class="bi bi-box-seam"></i></span><span class="nav-link-title">Produtos</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link" data-tab="pedidos" onclick="showTab('pedidos');return false;"><span class="nav-link-icon d-md-none d-lg-inline-block"><i class="bi bi-whatsapp"></i></span><span class="nav-link-title">Pedidos (WhatsApp)</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link" data-tab="loja" onclick="showTab('loja');return false;"><span class="nav-link-icon d-md-none d-lg-inline-block"><i class="bi bi-shop"></i></span><span class="nav-link-title">Loja e banners</span></a></li>
+          <li class="nav-item"><a href="#" class="nav-link" data-tab="exportar" onclick="showTab('exportar');return false;"><span class="nav-link-icon d-md-none d-lg-inline-block"><i class="bi bi-cloud-upload"></i></span><span class="nav-link-title">Exportar / Publicar</span></a></li>
+        </ul>
+        <div class="my-2 mx-3 p-3 rounded" style="background:rgba(255,255,255,.08)">
+          <span class="badge text-bg-warning">PROTÓTIPO Tabler</span>
+          <p class="mt-2 mb-0" style="color:rgba(255,255,255,.75);font-size:12px">Visual moderno de teste. Mesmas funções e mesmos dados do painel atual. Publica só no site de TESTE.</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="page-wrapper">
+    <div class="page-header d-print-none">
+      <div class="container-xl">
+        <div class="row g-2 align-items-center">
+          <div class="col">
+            <h2 class="page-title" id="pageTitle">Visão geral</h2>
+            <div class="text-secondary mt-1">Ilhéus/BA · Barra de Itaípe · <span id="saveState">Alterações salvas neste navegador</span></div>
+          </div>
+          <div class="col-auto ms-auto d-print-none">
+            <button class="btn btn-terra" onclick="showTab('exportar')"><i class="bi bi-cloud-upload"></i> Exportar / Publicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page-body">
+      <div class="container-xl">
+        <div class="alert alert-warning"><b>Protótipo moderno Tabler + ApexCharts:</b> tudo que você edita aqui fica salvo neste navegador (mesmos dados do painel atual). Os gráficos são interativos e usam os dados reais do painel — sem vendas inventadas. A loja dos clientes não muda sozinha até você publicar — e este protótipo só publica no site de TESTE.</div>
+
+<section id="tab-dashboard">
+    <div class="row g-3" id="kpis"></div>
+    <div class="row g-3" style="margin-top:2px">
+  <div class="col-lg-6"><div class="card"><h3 style="margin-top:0">Produtos por categoria</h3><p class="text-secondary">Produtos ativos, por categoria.</p><div class="chart-wrap" id="chartCat"></div></div></div>
+  <div class="col-lg-6"><div class="card"><h3 style="margin-top:0">Valor em estoque por categoria</h3><p class="text-secondary">Preço × quantidade, só produtos ativos.</p><div class="chart-wrap" id="chartStockVal"></div></div></div>
+  <div class="col-lg-6"><div class="card"><h3 style="margin-top:0">Pedidos por status</h3><p class="text-secondary" id="chartOrdersNote"></p><div class="chart-wrap" id="chartOrders"></div></div></div>
+  <div class="col-lg-6"><div class="card"><h3 style="margin-top:0">Estoque por faixa</h3><p class="text-secondary">Zerado / Baixo (1–5) / OK (6+), só produtos ativos.</p><div class="chart-wrap" id="chartStockBand"></div></div></div>
+</div>
+    <div class="card"><h3 style="margin-top:0">Produtos por categoria</h3><div id="catBars"></div></div>
+    <div class="card"><h3 style="margin-top:0">Atenção ao estoque</h3><div id="stockAlerts"></div></div>
+    <div class="card"><h3 style="margin-top:0">Pedidos recentes</h3><div id="recentOrders"></div></div>
+  </section>
+
+  <section id="tab-produtos" style="display:none">
+    <div class="card">
+      <div class="row">
+        <div><label>Buscar</label><input id="prodSearch" placeholder="Nome, marca ou ID…" oninput="renderProducts()"></div>
+        <div><label>Categoria</label><select id="prodCat" onchange="renderProducts()"><option value="">Todas</option><option>Papelaria</option><option>Informática</option><option>Acessórios para Celular</option></select></div>
+        <div><label>Estoque</label><select id="prodStock" onchange="renderProducts()"><option value="">Todos</option><option value="zero">Zerado</option><option value="low">Baixo (≤ 5)</option><option value="ok">OK</option></select></div>
+        <div class="small"><label>&nbsp;</label><button class="btn" style="width:100%" onclick="openProductForm()">+ Novo produto</button></div>
+      </div>
+    </div>
+    <div class="card"><h3 style="margin-top:0">Edição em massa</h3>
+      <p class="muted">Edite preço e estoque de vários produtos de uma vez e salve tudo junto. Para editar em planilha: baixe o CSV, edite no Excel/Google Planilhas e importe de volta — os produtos são casados pelo ID.</p>
+      <div class="row">
+        <button class="ghost" onclick="exportCSV()">Baixar CSV de produtos</button>
+        <div><label>Importar CSV</label><input type="file" id="csvFile" accept=".csv" onchange="importCSV(event)"></div>
+        <button class="btn" onclick="saveBulk()">Salvar edição em massa</button>
+      </div>
+      <div style="overflow:auto;margin-top:12px"><table><thead><tr><th>Produto</th><th>Preço (R$)</th><th>Estoque</th><th>Destaque</th><th>Ativo</th></tr></thead><tbody id="bulkTable"></tbody></table></div>
+    </div>
+    <div class="card" style="overflow:auto"><table><thead><tr><th>Foto</th><th>Produto</th><th class="hide-m">Categoria</th><th>Preço</th><th>Estoque</th><th>Status</th><th>Ações</th></tr></thead><tbody id="prodTable"></tbody></table></div>
+  </section>
+
+  <section id="tab-pedidos" style="display:none">
+    <div class="card"><h3 style="margin-top:0">Registrar pedido (chegou pelo WhatsApp)</h3>
+      <div class="row">
+        <div><label>Cliente</label><input id="ordClient" placeholder="Nome do cliente"></div>
+        <div><label>WhatsApp</label><input id="ordWa" placeholder="(73) 9xxxx-xxxx"></div>
+        <div><label>Pagamento</label><select id="ordPay"><option>Pix</option><option>Cartão</option><option>Dinheiro</option><option>Boleto</option></select></div>
+        <div><label>Status</label><select id="ordStatus"><option>Pendente</option><option>Pago</option><option>Separado</option><option>Enviado / Retirada</option><option>Entregue</option><option>Cancelado</option></select></div>
+      </div>
+      <div class="row">
+        <div><label>Produto</label><select id="ordProd"></select></div>
+        <div class="small"><label>Qtd.</label><input id="ordQty" type="number" min="1" max="99" value="1"></div>
+        <div class="small"><label>&nbsp;</label><button class="ghost" style="width:100%" onclick="addOrderLine()">Adicionar item</button></div>
+      </div>
+      <div id="ordLines" style="margin-top:10px"></div>
+      <label>Observação</label><textarea id="ordNote" placeholder="Ex.: retirar na loja, entregar em…"></textarea>
+      <div style="margin-top:12px"><button class="btn" onclick="saveOrder()">Salvar pedido</button> <span class="muted" id="ordTotal"></span></div>
+    </div>
+    <div class="card" style="overflow:auto"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Itens</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead><tbody id="ordTable"></tbody></table></div>
+  </section>
+
+  <section id="tab-loja" style="display:none">
+    <div class="card"><h3 style="margin-top:0">Dados da loja</h3>
+      <p class="muted">O WhatsApp abaixo é aplicado na exportação do index.html. Os demais campos ficam salvos no painel e no backup — a loja atual só os usa se o texto for o mesmo já publicado.</p>
+      <div class="row">
+        <div><label>WhatsApp (só números, com DDI)</label><input id="setWa" value="5573988197725"></div>
+        <div><label>Endereço</label><input id="setAddr" value="Av. Vereador Amilton de Castro, 798 — Barra de Itaípe, Ilhéus/BA"></div>
+      <div><label>Chave Pix da loja (para o Pix manual — deixe em branco para não ativar)</label><input id="setPixKey" placeholder="E-mail ou chave aleatória — não use CPF como chave pública"><p class="muted">A chave Pix vai para o arquivo da loja exportado, porque o cliente precisa dela para pagar. Por isso, nunca use CPF: use chave de e-mail ou aleatória.</p></div>
+      </div>
+      <div class="row">
+        <div><label>Horário seg–sex</label><input id="setHours1" value="08:00–18:00"></div>
+        <div><label>Horário sábado</label><input id="setHours2" value="08:00–12:00"></div>
+        <div class="small"><label>Desconto Pix (%)</label><input id="setPix" type="number" value="5"></div>
+        <div class="small"><label>Frete grátis a partir (R$)</label><input id="setShip" type="number" value="199"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn" onclick="saveSettings()">Salvar dados da loja</button></div>
+      <p class="muted"><b>WhatsApp confirmado em 04/11:</b> (73) 98819-7725 — deixar como está, sem voltar ao número antigo.</p>
+    </div>
+    <div class="card"><h3 style="margin-top:0">Banners</h3>
+      <p class="muted">Os banners vivem na pasta <code>assets/</code> da loja. Para trocar um, escolha a imagem nova e baixe o arquivo com o nome original — depois substitua o arquivo na pasta <code>assets</code> e publique junto com o index.html.</p>
+      <div id="bannerList"></div>
+    </div>
+  </section>
+
+  <section id="tab-exportar" style="display:none">
+    <div class="card"><h3 style="margin-top:0">1 — Importar a loja atual (só para gerar o index.html novo)</h3>
+      <p class="muted">Escolha o arquivo <code>index.html</code> atual da pasta <code>informaster-publicar</code>. O painel só troca a lista de produtos (e o WhatsApp, se você mudou) e mantém todo o resto igual. Se você fechar a página, precisa importar de novo — o arquivo da loja não fica salvo aqui.</p>
+      <input type="file" id="storeFile" accept=".html" onchange="importStore(event)">
+      <p id="storeFileState" class="muted">Nenhum index.html importado ainda.</p>
+    </div>
+    <div class="card"><h3 style="margin-top:0">Publicar direto no GitHub — PROTÓTIPO TESTE (sem baixar)</h3>
+      <p class="muted">Este botão publica <b>só no site de TESTE</b> (<code>SilvioBSan/informaster-teste</code>). O site oficial <b>não</b> é tocado por ele. Depois de publicar, aguarde 1–2 minutos e recarregue o site de teste para conferir.</p>
+      <p class="muted"><b>Token fino do GitHub (só neste navegador):</b> crie em GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token, com acesso <b>só ao repo informaster-teste</b> e permissão de repositório <b>Contents: Read and write</b>. Cole abaixo e clique em Salvar token. O token <b>nunca</b> vai para o arquivo do painel, para o repo, para o site ou para o chat — fica só no armazenamento local deste navegador. Se vazar, revogue o token no GitHub e gere outro. <b>Nunca cole o token no chat.</b></p>
+      <div><label>Token fino do GitHub</label><input id="ghToken" type="password" placeholder="Cole o token fino aqui (não compartilhe)" autocomplete="off"></div>
+      <div class="row"><button class="ghost" onclick="saveGhToken()">Salvar token neste navegador</button> <button class="ghost" onclick="clearGhToken()">Apagar token</button></div>
+      <p id="ghTokenStatus" class="muted">Nenhum token salvo neste navegador.</p>
+      <div class="row"><button class="btn" onclick="publishToTest()">Publicar no site de TESTE</button></div>
+      <p id="publishStatus" class="muted">Ainda não publicado por este botão.</p>
+      <p class="muted">O que ele publica: os mesmos produtos, preços, estoque, destaque, ativo/inativo e WhatsApp que a exportação de hoje já troca. Banners e fotos continuam manuais nesta fase. Publicar <b>não</b> ativa o Pix sozinho: enquanto a chave Pix estiver em branco, o site continua mostrando o aviso de “chave não configurada”.</p>
+    </div>
+    <div class="card"><h3 style="margin-top:0">2 — Baixar e publicar</h3>
+      <div class="row">
+        <button class="btn" onclick="downloadProdutosJson()">Baixar produtos.json</button>
+        <button class="btn" onclick="downloadStoreHtml()">Baixar index.html atualizado</button>
+        <button class="ghost" onclick="downloadBackup()">Baixar backup do painel</button>
+      </div>
+      <ol>
+        <li>Publique o <b>index.html atualizado</b> no lugar do atual (GitHub Pages ou Netlify, com a pasta <code>assets</code> completa junto).</li>
+        <li>Guarde o <b>produtos.json</b> junto da loja, como base do catálogo.</li>
+        <li>Se trocar foto de produto, o arquivo da foto deve se chamar <code>assets/&lt;id em minúsculas&gt;.webp</code> (ex.: <code>assets/pap-001.webp</code>).</li>
+        <li><b>Não</b> suba este painel com botão Publicar para o site oficial sem aprovação — o protótipo é só para o teste.</li>
+      </ol>
+    </div>
+    <div class="card"><h3 style="margin-top:0">3 — Backup e restauração</h3>
+      <div class="row">
+        <input type="file" id="backupFile" accept=".json" onchange="importBackup(event)">
+        <button class="ghost" onclick="resetCatalog()">Restaurar catálogo original</button>
+        <button class="danger" onclick="clearAll()">Apagar todos os dados locais</button>
+      </div>
+      <p class="muted">Restaurar o catálogo não apaga os pedidos. Apagar os dados locais remove produtos editados, pedidos e o PIN deste navegador.</p>
+    </div>
+  </section>
+      </div>
+    </div>
+    <footer class="footer footer-transparent d-print-none"><div class="container-xl"><strong>Informaster</strong> · Protótipo moderno Tabler + ApexCharts · Painel de teste — não é o site oficial.</div></footer>
+  </div>
+</div>
+
+<div class="modal-back" id="prodModal"><div class="modal">
+  <h3 style="margin-top:0" id="prodModalTitle">Produto</h3>
+  <input type="hidden" id="fOrigId">
+  <div class="row">
+    <div><label>ID</label><input id="fId" placeholder="PAP-064"></div>
+    <div><label>Marca</label><input id="fBrand" placeholder="Ex.: Tilibra"></div>
+  </div>
+  <label>Nome</label><input id="fName" placeholder="Nome completo do produto">
+  <div class="row">
+    <div><label>Categoria</label><select id="fCat" onchange="suggestId()"><option>Papelaria</option><option>Informática</option><option>Acessórios para Celular</option></select></div>
+    <div><label>Subcategoria</label><input id="fSub" list="subList" placeholder="Ex.: Cadernos e Blocos"><datalist id="subList"></datalist></div>
+  </div>
+  <div class="row">
+    <div><label>Preço (R$)</label><input id="fPrice" type="number" min="0" step="0.01"></div>
+    <div><label>Estoque</label><input id="fStock" type="number" min="0" step="1" value="10"></div>
+  </div>
+  <label><input type="checkbox" id="fNoPrice" onchange="toggleNoPrice()"> Sem preço fixo — “consultar no WhatsApp” (como Chip + Recarga)</label>
+  <label>Sinônimos (separados por vírgula — ex.: post-it, bloco adesivo)</label><input id="fSyn" placeholder="Sinônimos que o cliente pode digitar">
+  <label>Descrição</label><textarea id="fDesc"></textarea>
+  <label><input type="checkbox" id="fFeat"> Destaque na vitrine</label>
+  <label><input type="checkbox" id="fActive" checked> Ativo (produto inativo some da loja exportada, mas continua no painel)</label>
+  <label>Foto nova (opcional — baixe depois com o nome certo)</label><input type="file" id="fPhoto" accept="image/*" onchange="previewPhoto(event)">
+  <div id="photoPreview" class="muted"></div>
+  <div style="margin-top:14px"><button class="btn" onclick="saveProduct()">Salvar produto</button> <button class="ghost" onclick="closeProductForm()">Cancelar</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.55.1/dist/apexcharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@latest/dist/js/tabler.min.js"></script>
+<script>
+const INITIAL_PRODUCTS = [{"categoria": "Papelaria", "descricao": "Caderno universitário capa dura com 200 folhas pautadas, espiral e bolso interno.", "destaque": true, "estoque": 40, "id": "PAP-001", "marca": "Tilibra", "nome": "Caderno Universitário Capa Dura 200 Folhas", "preco": 34.9, "subcategoria": "Cadernos e Blocos", "sinonimos": ["caderno 10 materias", "caderno grande"]}, {"categoria": "Papelaria", "descricao": "Caderno brochura costurado, 96 folhas pautadas — ideal para escola.", "destaque": false, "estoque": 80, "id": "PAP-002", "marca": "Jandaia", "nome": "Caderno Brochura 96 Folhas", "preco": 12.9, "subcategoria": "Cadernos e Blocos", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Agenda com planejamento semanal, capa dura e elástico.", "destaque": false, "estoque": 25, "id": "PAP-003", "marca": "Tilibra", "nome": "Agenda Permanente 2026", "preco": 49.9, "subcategoria": "Cadernos e Blocos", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Bloco de notas autoadesivas amarelas, 100 folhas.", "destaque": false, "estoque": 60, "id": "PAP-004", "marca": "Post-it", "nome": "Bloco de Notas Adesivas 76x76mm c/ 100fls", "preco": 14.9, "subcategoria": "Cadernos e Blocos", "sinonimos": ["post-it", "bloco adesivo", "post it"]}, {"categoria": "Papelaria", "descricao": "Caderno de desenho com papel 140g, ideal para lápis, nanquim e marcadores.", "destaque": true, "estoque": 20, "id": "PAP-005", "marca": "Canson", "nome": "Sketchbook Caderno de Desenho A4 80fls", "preco": 42.9, "subcategoria": "Arte e Desenho", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Caneta esferográfica ponta média 1.0mm, escrita macia.", "destaque": false, "estoque": 200, "id": "PAP-006", "marca": "Bic", "nome": "Caneta Esferográfica Azul 1.0mm", "preco": 2.5, "subcategoria": "Escrita", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Caneta gel de escrita suave e precisa, ideal para estudos e bullet journal.", "destaque": false, "estoque": 100, "id": "PAP-007", "marca": "Pilot", "nome": "Caneta Gel Preta 0.7mm", "preco": 8.9, "subcategoria": "Escrita", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Kit com 6 marca-textos em tons pastel, ponta chanfrada.", "destaque": true, "estoque": 35, "id": "PAP-008", "marca": "Stabilo", "nome": "Kit Marca-Texto Pastel c/ 6 Cores", "preco": 39.9, "subcategoria": "Escrita", "sinonimos": ["marca-texto", "marcador", "grifador", "marca texto"]}, {"categoria": "Papelaria", "descricao": "Lápis preto nº 2 sextavado com borracha na ponta.", "destaque": false, "estoque": 200, "id": "PAP-009", "marca": "Faber-Castell", "nome": "Lápis Preto nº 2 c/ Borracha", "preco": 1.8, "subcategoria": "Escrita", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Lapiseira 0.7mm com grip emborrachado, acompanha tubo de grafite.", "destaque": false, "estoque": 50, "id": "PAP-010", "marca": "Pentel", "nome": "Lapiseira 0.7mm + Grafite", "preco": 16.9, "subcategoria": "Escrita", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Borracha branca macia, não mancha o papel.", "destaque": false, "estoque": 120, "id": "PAP-011", "marca": "Faber-Castell", "nome": "Borracha Branca Macia", "preco": 3.5, "subcategoria": "Escrita", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Corretivo em fita de aplicação seca, correção imediata.", "destaque": false, "estoque": 45, "id": "PAP-012", "marca": "Bic", "nome": "Corretivo em Fita 5mm x 8m", "preco": 11.9, "subcategoria": "Escrita", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Resma de papel sulfite A4 75g/m² com 500 folhas, branco.", "destaque": true, "estoque": 60, "id": "PAP-013", "marca": "Chamex", "nome": "Resma Papel Sulfite A4 75g 500 Folhas", "preco": 32.9, "subcategoria": "Papéis", "sinonimos": ["papel a4", "resma", "sulfite"]}, {"categoria": "Papelaria", "descricao": "Papel fotográfico glossy A4 180g, pacote com 50 folhas.", "destaque": false, "estoque": 30, "id": "PAP-014", "marca": "Masterprint", "nome": "Papel Fotográfico A4 180g c/ 50fls", "preco": 34.9, "subcategoria": "Papéis", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Bloco de papel cartão A4 em cores sortidas, 20 folhas.", "destaque": false, "estoque": 40, "id": "PAP-015", "marca": "Filipaper", "nome": "Bloco Papel Cartão A4 c/ 20fls Colorido", "preco": 18.9, "subcategoria": "Papéis", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Estojo com 24 lápis de cor, cores vivas e ótima cobertura.", "destaque": true, "estoque": 35, "id": "PAP-016", "marca": "Faber-Castell", "nome": "Lápis de Cor 24 Cores", "preco": 32.9, "subcategoria": "Arte e Desenho", "sinonimos": ["lapis colorido", "lapis de colorir"]}, {"categoria": "Papelaria", "descricao": "Caixa com 12 cores de giz de cera atóxico.", "destaque": false, "estoque": 50, "id": "PAP-017", "marca": "Acrilex", "nome": "Giz de Cera 12 Cores", "preco": 9.9, "subcategoria": "Arte e Desenho", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Kit com 6 potes de tinta guache 15ml, cores vibrantes.", "destaque": false, "estoque": 30, "id": "PAP-018", "marca": "Acrilex", "nome": "Tinta Guache 6 Cores 15ml", "preco": 14.9, "subcategoria": "Arte e Desenho", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Kit com 5 pincéis chatos de cerdas sintéticas, vários tamanhos.", "destaque": false, "estoque": 25, "id": "PAP-019", "marca": "Condor", "nome": "Kit Pincéis Chatos c/ 5 Unidades", "preco": 24.9, "subcategoria": "Arte e Desenho", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Grampeador metálico para até 25 folhas, usa grampo 26/6.", "destaque": false, "estoque": 30, "id": "PAP-020", "marca": "Cis", "nome": "Grampeador Médio 26/6", "preco": 29.9, "subcategoria": "Escritório", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Furador metálico 2 furos, capacidade para 30 folhas.", "destaque": false, "estoque": 20, "id": "PAP-021", "marca": "Cis", "nome": "Furador de Papel 2 Furos 30fls", "preco": 39.9, "subcategoria": "Escritório", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Pasta catálogo preta com 50 envelopes plásticos.", "destaque": false, "estoque": 35, "id": "PAP-022", "marca": "ACP", "nome": "Pasta Catálogo c/ 50 Plásticos", "preco": 24.9, "subcategoria": "Escritório", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Organizador de mesa em acrílico com 3 compartimentos.", "destaque": false, "estoque": 15, "id": "PAP-023", "marca": "Dello", "nome": "Caixa Organizadora de Mesa", "preco": 44.9, "subcategoria": "Escritório", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Tesoura escolar 13cm com ponta arredondada.", "destaque": false, "estoque": 60, "id": "PAP-024", "marca": "Tramontina", "nome": "Tesoura Escolar 13cm", "preco": 9.9, "subcategoria": "Escritório", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Calculadora científica com 240 funções, display de 2 linhas.", "destaque": true, "estoque": 18, "id": "PAP-025", "marca": "Casio", "nome": "Calculadora Científica 240 Funções", "preco": 89.9, "subcategoria": "Escritório", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Mochila escolar com costas acolchoadas e 3 compartimentos.", "destaque": true, "estoque": 20, "id": "PAP-026", "marca": "Pacific", "nome": "Mochila Escolar Reforçada", "preco": 129.9, "subcategoria": "Escolar", "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Estojo em tecido com zíper e divisória interna.", "destaque": false, "estoque": 45, "id": "PAP-027", "marca": "Pacific", "nome": "Estojo Escolar c/ Zíper", "preco": 24.9, "subcategoria": "Escolar", "sinonimos": []}, {"categoria": "Informática", "descricao": "Mouse óptico USB com 1200 DPI e design ergonômico.", "destaque": true, "estoque": 50, "id": "INF-001", "marca": "Multilaser", "nome": "Mouse Óptico USB 1200 DPI", "preco": 34.9, "subcategoria": "Periféricos", "sinonimos": []}, {"categoria": "Informática", "descricao": "Teclado padrão ABNT2 com teclas de baixo ruído, conexão USB.", "destaque": false, "estoque": 35, "id": "INF-002", "marca": "Multilaser", "nome": "Teclado ABNT2 USB", "preco": 79.9, "subcategoria": "Periféricos", "sinonimos": []}, {"categoria": "Informática", "descricao": "Kit teclado e mouse sem fio 2.4GHz, ideal para home office.", "destaque": true, "estoque": 20, "id": "INF-003", "marca": "Logitech", "nome": "Kit Teclado + Mouse sem Fio", "preco": 249.9, "subcategoria": "Periféricos", "sinonimos": []}, {"categoria": "Informática", "descricao": "Headset over-ear com microfone ajustável, ideal para aulas e reuniões online.", "destaque": true, "estoque": 25, "id": "INF-004", "marca": "Havit", "nome": "Headset com Microfone", "preco": 129.9, "subcategoria": "Periféricos", "sinonimos": ["fone com microfone", "fone de ouvido"]}, {"categoria": "Informática", "descricao": "Webcam HD 720p com microfone embutido e clipe universal.", "destaque": false, "estoque": 18, "id": "INF-005", "marca": "Multilaser", "nome": "Webcam HD 720p com Microfone", "preco": 119.9, "subcategoria": "Periféricos", "sinonimos": []}, {"categoria": "Informática", "descricao": "Mousepad estendido 70x30cm com bordas costuradas e base antiderrapante.", "destaque": false, "estoque": 30, "id": "INF-006", "marca": "Redragon", "nome": "Mousepad Gamer Grande 70x30cm", "preco": 59.9, "subcategoria": "Periféricos", "sinonimos": []}, {"categoria": "Informática", "descricao": "Caixa de som bluetooth portátil à prova d'água, até 10h de bateria.", "destaque": true, "estoque": 12, "id": "INF-007", "marca": "JBL", "nome": "Caixa de Som Bluetooth Portátil", "preco": 299.9, "subcategoria": "Periféricos", "sinonimos": []}, {"categoria": "Informática", "descricao": "Pendrive 64GB USB 3.0 com alta velocidade de transferência.", "destaque": true, "estoque": 60, "id": "INF-008", "marca": "SanDisk", "nome": "Pendrive 64GB USB 3.0", "preco": 49.9, "subcategoria": "Armazenamento", "sinonimos": ["pen drive", "pendrive", "memoria usb"]}, {"categoria": "Informática", "descricao": "HD externo portátil 1TB, USB 3.0, compatível com PC e Mac.", "destaque": false, "estoque": 15, "id": "INF-009", "marca": "Seagate", "nome": "HD Externo 1TB USB 3.0", "preco": 389.9, "subcategoria": "Armazenamento", "sinonimos": ["hd externo", "disco rigido externo"]}, {"categoria": "Informática", "descricao": "SSD 480GB SATA III 2.5\", deixa o computador até 10x mais rápido.", "destaque": true, "estoque": 20, "id": "INF-010", "marca": "Kingston", "nome": "SSD 480GB SATA", "preco": 249.9, "subcategoria": "Armazenamento", "sinonimos": []}, {"categoria": "Informática", "descricao": "Cartão microSD 128GB classe 10 com adaptador SD.", "destaque": false, "estoque": 40, "id": "INF-011", "marca": "SanDisk", "nome": "Cartão MicroSD 128GB Classe 10", "preco": 79.9, "subcategoria": "Armazenamento", "sinonimos": []}, {"categoria": "Informática", "descricao": "Roteador Wi-Fi dual band 2.4/5GHz até 1200Mbps, 4 antenas.", "destaque": true, "estoque": 18, "id": "INF-012", "marca": "TP-Link", "nome": "Roteador Wi-Fi Dual Band AC1200", "preco": 189.9, "subcategoria": "Redes", "sinonimos": ["roteador wifi", "roteador wi-fi"]}, {"categoria": "Informática", "descricao": "Cabo de rede Cat6 de 10 metros, conectores RJ45 blindados.", "destaque": false, "estoque": 30, "id": "INF-013", "marca": "Furukawa", "nome": "Cabo de Rede RJ45 Cat6 10m", "preco": 39.9, "subcategoria": "Redes", "sinonimos": []}, {"categoria": "Informática", "descricao": "Filtro de linha com 5 tomadas e proteção contra surtos.", "destaque": false, "estoque": 35, "id": "INF-014", "marca": "Clamper", "nome": "Filtro de Linha 5 Tomadas", "preco": 59.9, "subcategoria": "Energia", "sinonimos": []}, {"categoria": "Informática", "descricao": "Nobreak 600VA bivolt com 4 tomadas, protege contra quedas de energia.", "destaque": true, "estoque": 10, "id": "INF-015", "marca": "SMS", "nome": "Nobreak 600VA Bivolt", "preco": 429.9, "subcategoria": "Energia", "sinonimos": []}, {"categoria": "Informática", "descricao": "Multifuncional tanque de tinta com Wi-Fi: imprime, copia e digitaliza com custo baixíssimo por página.", "destaque": true, "estoque": 6, "id": "INF-016", "marca": "Epson", "nome": "Impressora Multifuncional Tanque de Tinta Wi-Fi", "preco": 1499.0, "subcategoria": "Impressão", "sinonimos": []}, {"categoria": "Informática", "descricao": "Kit com 4 tintas originais 70ml (preto, ciano, magenta, amarelo).", "destaque": false, "estoque": 20, "id": "INF-017", "marca": "Epson", "nome": "Tinta Original 70ml (Kit c/ 4 Cores)", "preco": 189.9, "subcategoria": "Impressão", "sinonimos": []}, {"categoria": "Informática", "descricao": "Toner compatível de alta rendimento — consulte modelos disponíveis.", "destaque": false, "estoque": 25, "id": "INF-018", "marca": "Chinamate", "nome": "Toner Compatível", "preco": 89.9, "subcategoria": "Impressão", "sinonimos": []}, {"categoria": "Informática", "descricao": "Hub USB 3.0 com 4 portas e cabo de 1 metro.", "destaque": false, "estoque": 30, "id": "INF-019", "marca": "Ugreen", "nome": "Hub USB 4 Portas 3.0", "preco": 69.9, "subcategoria": "Acessórios", "sinonimos": []}, {"categoria": "Informática", "descricao": "Suporte ergonômico ajustável para notebook até 17\", alumínio.", "destaque": false, "estoque": 22, "id": "INF-020", "marca": "Reliza", "nome": "Suporte para Notebook Ajustável", "preco": 79.9, "subcategoria": "Acessórios", "sinonimos": []}, {"categoria": "Informática", "descricao": "Mochila acolchoada para notebook até 15.6\" com compartimento antirroubo.", "destaque": false, "estoque": 15, "id": "INF-021", "marca": "Dell", "nome": "Mochila para Notebook 15.6\"", "preco": 159.9, "subcategoria": "Acessórios", "sinonimos": []}, {"categoria": "Informática", "descricao": "Cabo HDMI 2.0 com suporte a 4K, 1.5 metro.", "destaque": false, "estoque": 40, "id": "INF-022", "marca": "Ugreen", "nome": "Cabo HDMI 2.0 4K 1.5m", "preco": 44.9, "subcategoria": "Acessórios", "sinonimos": []}, {"categoria": "Informática", "descricao": "Cartela com 4 pilhas alcalinas AA de longa duração.", "destaque": false, "estoque": 80, "id": "INF-023", "marca": "Duracell", "nome": "Pilha Alcalina AA c/ 4 Unidades", "preco": 19.9, "subcategoria": "Acessórios", "sinonimos": []}, {"categoria": "Informática", "descricao": "Adaptador USB-C para HDMI 4K, ideal para notebooks modernos.", "destaque": false, "estoque": 25, "id": "INF-024", "marca": "Ugreen", "nome": "Adaptador USB-C para HDMI", "preco": 89.9, "subcategoria": "Acessórios", "sinonimos": []}, {"id": "INF-025", "nome": "Fonte Carregador para Notebook Lenovo Ideapad", "marca": "Universal", "categoria": "Informática", "subcategoria": "Fontes e Energia", "preco": 129.9, "descricao": "Fonte carregador compatível com notebooks Lenovo Ideapad. Consulte o modelo do seu aparelho.", "estoque": 12, "destaque": true, "sinonimos": []}, {"id": "INF-026", "nome": "Fonte Carregador para Notebook Samsung NP550", "marca": "Universal", "categoria": "Informática", "subcategoria": "Fontes e Energia", "preco": 129.9, "descricao": "Fonte carregador compatível com Samsung NP550. Consulte o modelo do seu aparelho.", "estoque": 10, "destaque": false, "sinonimos": []}, {"id": "INF-027", "nome": "Fonte Carregador para Notebook Positivo", "marca": "Universal", "categoria": "Informática", "subcategoria": "Fontes e Energia", "preco": 119.9, "descricao": "Fonte carregador compatível com notebooks Positivo. Consulte o modelo do seu aparelho.", "estoque": 10, "destaque": false, "sinonimos": []}, {"id": "INF-028", "nome": "Adaptador AC/DC Universal para Notebook", "marca": "Universal", "categoria": "Informática", "subcategoria": "Fontes e Energia", "preco": 89.9, "descricao": "Adaptador AC/DC universal com múltiplos pinos, compatível com diversas marcas.", "estoque": 15, "destaque": false, "sinonimos": []}, {"id": "INF-029", "nome": "Cabo de Força Tripolar", "marca": "Genérico", "categoria": "Informática", "subcategoria": "Fontes e Energia", "preco": 24.9, "descricao": "Cabo de força padrão tripolar para fontes e monitores, 1,5m.", "estoque": 30, "destaque": false, "sinonimos": []}, {"id": "INF-030", "nome": "Estabilizador 300VA", "marca": "SMS", "categoria": "Informática", "subcategoria": "Fontes e Energia", "preco": 149.9, "descricao": "Estabilizador 300VA bivolt com proteção contra surtos e ruídos.", "estoque": 12, "destaque": false, "sinonimos": []}, {"id": "INF-031", "nome": "Pen Drive 32GB USB", "marca": "SanDisk", "categoria": "Informática", "subcategoria": "Armazenamento", "preco": 39.9, "descricao": "Pen drive 32GB USB de alta velocidade.", "estoque": 40, "destaque": false, "sinonimos": ["pen drive", "pendrive", "memoria usb"]}, {"id": "INF-032", "nome": "Pen Drive Temático 16GB (Hulk / Capitão América)", "marca": "Genérico", "categoria": "Informática", "subcategoria": "Armazenamento", "preco": 49.9, "descricao": "Pen drive 16GB em formato temático: Hulk ou Capitão América. Modelos divertidos para presentear.", "estoque": 20, "destaque": true, "sinonimos": []}, {"id": "CEL-001", "nome": "Carregador Turbo USB-C 25W", "marca": "Genérico", "categoria": "Acessórios para Celular", "subcategoria": "Carregadores e Cabos", "preco": 59.9, "descricao": "Carregador turbo USB-C 25W com carregamento rápido.", "estoque": 25, "destaque": true, "sinonimos": []}, {"id": "CEL-002", "nome": "Cabo USB-C 1m", "marca": "Genérico", "categoria": "Acessórios para Celular", "subcategoria": "Carregadores e Cabos", "preco": 29.9, "descricao": "Cabo USB-C de 1 metro com alta durabilidade.", "estoque": 40, "destaque": false, "sinonimos": []}, {"id": "CEL-003", "nome": "Película de Vidro para Celular", "marca": "Genérica", "categoria": "Acessórios para Celular", "subcategoria": "Proteção", "preco": 19.9, "descricao": "Película de vidro temperado. Consulte o modelo do seu aparelho.", "estoque": 50, "destaque": false, "sinonimos": ["pelicula protetora", "vidro temperado", "pelicula de vidro"]}, {"id": "CEL-004", "nome": "Chip + Recarga (retirada na loja)", "marca": "Operadoras", "categoria": "Acessórios para Celular", "subcategoria": "Chips e Recargas", "preco": 0.0, "descricao": "Chip das principais operadoras com recarga. Retirada na loja — consulte valores no WhatsApp.", "estoque": 100, "destaque": false, "sinonimos": []}, {"categoria": "Papelaria", "descricao": "Produto de teste do cadastro manual — régua acrílica transparente de 30cm, com escala em centímetros. Foto provisória, a ser substituída pela foto real antes de ir para o oficial.", "destaque": false, "estoque": 50, "id": "PAP-028", "marca": "Genérico", "nome": "TESTE — Régua Acrílica Transparente 30cm", "preco": 7.9, "subcategoria": "Escritório", "sinonimos": ["regua", "régua", "regua 30cm", "régua 30cm"]}];
+const BANNERS = [
+  ["banner-hero-premium.webp","Banner principal"],
+  ["banner-volta-as-aulas.webp","Volta às aulas"],
+  ["banner-escolar-orcamento.webp","Orçamento escolar"],
+  ["banner-pix-ofertas.webp","Ofertas no Pix"],
+  ["banner-home-office.webp","Home office"],
+  ["banner-setup-games.webp","Setup gamer"],
+  ["banner-assistencia-tecnica.webp","Assistência técnica"]
+];
+const LS = "informaster_admin_v1", LS_PIN = "informaster_admin_pin";
+let state = loadState();
+let storeHtml = null, storeOrigWa = "5573988197725", orderLines = [], editingPhoto = null;
+function loadState(){
+  try{ const raw = localStorage.getItem(LS); if(raw){ const s = JSON.parse(raw); if(Array.isArray(s.products)) return {products:s.products, orders:s.orders||[], settings:s.settings||defaultSettings()}; } }catch(e){}
+  return {products: JSON.parse(JSON.stringify(INITIAL_PRODUCTS)).map(p=>({...p, sinonimos:Array.isArray(p.sinonimos)?p.sinonimos:(p.sinonimos?String(p.sinonimos).split(',').map(s=>s.trim()).filter(Boolean):[]), preco:p.preco===0?null:p.preco, ativo:p.ativo!==false})), orders:[], settings:defaultSettings()};
+}
+function defaultSettings(){ return {whatsapp:"5573988197725", endereco:"Av. Vereador Amilton de Castro, 798 — Barra de Itaípe, Ilhéus/BA", hours1:"08:00–18:00", hours2:"08:00–12:00", pix:5, ship:199, pixKey:""}; }
+function save(){ localStorage.setItem(LS, JSON.stringify(state)); document.getElementById("saveState").textContent = "Salvo neste navegador às " + new Date().toLocaleTimeString("pt-BR"); }
+function brl(v){ return v==null ? "Consultar" : v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function showTab(id){ document.querySelectorAll(".page-body section").forEach(s=>s.style.display="none"); document.getElementById("tab-"+id).style.display="block"; document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active", b.dataset.tab===id)); document.querySelectorAll(".navbar-vertical .nav-link[data-tab]").forEach(b=>b.classList.toggle("active", b.dataset.tab===id)); var titles={dashboard:"Visão geral",produtos:"Produtos",pedidos:"Pedidos (WhatsApp)",loja:"Loja e banners",exportar:"Exportar / Publicar"}; var pt=document.getElementById("pageTitle"); if(pt&&titles[id]) pt.textContent=titles[id]; }
+function photoSrc(p){ return "assets/"+String(p.id).toLowerCase()+".webp"; }
+function nextId(cat){ const pref = cat==="Papelaria"?"PAP":cat==="Informática"?"INF":"CEL"; const nums = state.products.filter(p=>p.id.startsWith(pref)).map(p=>parseInt(p.id.slice(4))||0); return pref+"-"+String(Math.max(0,...nums)+1).padStart(3,"0"); }
+function renderAll(){ renderDashboard(); renderProducts(); renderBulk(); renderOrders(); renderSettings(); renderBanners(); }
+
+function renderBulk(){
+  document.getElementById("bulkTable").innerHTML = state.products.map((p,i)=>`<tr><td><b>${esc(p.nome)}</b><br><span class="muted">${esc(p.id)}</span></td><td><input type="number" min="0" step="0.01" data-bulk-price="${i}" value="${p.preco==null?"":p.preco}"></td><td><input type="number" min="0" step="1" data-bulk-stock="${i}" value="${p.estoque||0}"></td><td><input type="checkbox" data-bulk-feat="${i}" ${p.destaque?"checked":""}></td><td><input type="checkbox" data-bulk-active="${i}" ${p.ativo?"checked":""}></td></tr>`).join("");
+}
+function saveBulk(){
+  state.products.forEach((p,i)=>{
+    const pr=document.querySelector(`[data-bulk-price="${i}"]`), st=document.querySelector(`[data-bulk-stock="${i}"]`);
+    const fe=document.querySelector(`[data-bulk-feat="${i}"]`), ac=document.querySelector(`[data-bulk-active="${i}"]`);
+    if(pr) p.preco = pr.value===""?null:parseFloat(pr.value)||0;
+    if(st) p.estoque = parseInt(st.value)||0;
+    if(fe) p.destaque = fe.checked;
+    if(ac) p.ativo = ac.checked;
+  });
+  save(); renderAll(); alert("Edição em massa salva.");
+}
+function csvEsc(v){ const s=String(v==null?"":v); return /[",;\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function exportCSV(){
+  const head="id,nome,marca,categoria,subcategoria,preco,descricao,estoque,destaque,sinonimos";
+  const rows=state.products.map(p=>[p.id,p.nome,p.marca||"",p.categoria,p.subcategoria||"",p.preco==null?"":p.preco,p.descricao||"",p.estoque||0,p.destaque?"sim":"nao",(p.sinonimos||[]).join(";")].map(csvEsc).join(","));
+  downloadFile("produtos.csv", head+"\n"+rows.join("\n"), "text/csv");
+}
+function parseCsvLine(line){
+  const out=[]; let cur="", inQ=false;
+  for(let i=0;i<line.length;i++){ const c=line[i]; if(inQ){ if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++} else inQ=false; } else cur+=c; } else if(c==='"'){ inQ=true; } else if(c===","){ out.push(cur); cur=""; } else cur+=c; }
+  out.push(cur); return out;
+}
+function importCSV(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    const lines=r.result.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){ alert("CSV vazio ou sem produtos."); return; }
+    const head=parseCsvLine(lines[0]).map(h=>h.trim().toLowerCase());
+    let updated=0, added=0;
+    lines.slice(1).forEach(line=>{
+      const cols=parseCsvLine(line); const row={}; head.forEach((h,i)=>row[h]=cols[i]||"");
+      const id=(row.id||"").trim().toUpperCase(); if(!id) return;
+      const data={id, nome:row.nome||id, marca:row.marca||"", categoria:row.categoria||"Papelaria", subcategoria:row.subcategoria||"", preco:row.preco===""?null:parseFloat(row.preco)||0, descricao:row.descricao||"", estoque:parseInt(row.estoque)||0, destaque:["sim","true","1"].includes((row.destaque||"").toLowerCase()), sinonimos:(row.sinonimos||"").split(";").map(s=>s.trim()).filter(Boolean), ativo:true};
+      const i=state.products.findIndex(p=>p.id===id);
+      if(i>=0){ state.products[i]={...state.products[i], ...data}; updated++; } else { state.products.push(data); added++; }
+    });
+    save(); renderAll(); alert(`CSV importado: ${updated} atualizados, ${added} novos.`);
+  };
+  r.readAsText(f);
+}
+
+function renderDashboard(){
+  const active = state.products.filter(p=>p.ativo), priced = active.filter(p=>p.preco!=null);
+  const inv = active.reduce((s,p)=>s+(p.preco||0)*(p.estoque||0),0);
+  const zero = active.filter(p=>(p.estoque||0)===0), low = active.filter(p=>(p.estoque||0)>0 && (p.estoque||0)<=5);
+  document.getElementById("kpis").innerHTML = [
+    ["Produtos ativos", active.length, state.products.length+" no painel"], ["Em destaque", active.filter(p=>p.destaque).length, ""],
+    ["Valor em estoque", brl(inv), "preço × quantidade"], ["Estoque zerado", zero.length, ""],
+    ["Estoque baixo", low.length, "5 unidades ou menos"], ["Pedidos registrados", state.orders.length, ""]
+  ].map((k,i)=>{ const cols=["#c2571f","#1e7a4c","#2b6cb0","#b42318","#8a5a00","#6b5ce7"]; const icons=["bi-box-seam","bi-star-fill","bi-currency-dollar","bi-x-octagon","bi-exclamation-triangle","bi-whatsapp"]; return `<div class="card kpi-card" style="margin:0;border-top-color:${cols[i]}"><div class="d-flex align-items-start gap-3"><div class="kpi-icon" style="background:${cols[i]}"><i class="bi ${icons[i]}"></i></div><div><div class="text-secondary" style="font-size:13px">${k[0]}</div><div class="kpi-value">${k[1]}</div><div class="text-secondary" style="font-size:12px">${k[2]||"&nbsp;"}</div></div></div></div>`; }).join("");
+  const cats = {}; active.forEach(p=>cats[p.categoria]=(cats[p.categoria]||0)+1); const max = Math.max(1,...Object.values(cats));
+  document.getElementById("catBars").innerHTML = Object.entries(cats).map(([c,n])=>`<div style="margin:8px 0"><b>${esc(c)}</b> — ${n}<div class="bar"><i style="width:${Math.round(n/max*100)}%"></i></div></div>`).join("");
+  const alerts = [...zero.map(p=>`<span class="badge red">ZERADO</span> ${esc(p.nome)}`), ...low.map(p=>`<span class="badge amber">${p.estoque} un.</span> ${esc(p.nome)}`)];
+  document.getElementById("stockAlerts").innerHTML = alerts.length ? alerts.map(a=>`<div style="margin:6px 0">${a}</div>`).join("") : "<span class='muted'>Nenhum alerta de estoque.</span>";
+  document.getElementById("recentOrders").innerHTML = state.orders.slice(-5).reverse().map(o=>`<div style="margin:6px 0"><b>${esc(o.id)}</b> — ${esc(o.cliente||"Sem nome")} — ${brl(o.total)} — <span class="badge">${esc(o.status)}</span></div>`).join("") || "<span class='muted'>Nenhum pedido registrado ainda.</span>";
+  renderCharts();
+}
+let _charts={};
+function renderCharts(){
+  if(typeof ApexCharts==="undefined") return;
+  const active=state.products.filter(p=>p.ativo);
+  const cats=["Papelaria","Informática","Acessórios para Celular"];
+  const counts=cats.map(c=>active.filter(p=>p.categoria===c).length);
+  const vals=cats.map(c=>Math.round(active.filter(p=>p.categoria===c).reduce((s,p)=>s+(p.preco||0)*(p.estoque||0),0)*100)/100);
+  const statuses=["Pendente","Pago","Separado","Enviado / Retirada","Entregue","Cancelado"];
+  const ordCounts=statuses.map(s=>state.orders.filter(o=>o.status===s).length);
+  const bands=[active.filter(p=>(p.estoque||0)===0).length, active.filter(p=>(p.estoque||0)>0&&(p.estoque||0)<=5).length, active.filter(p=>(p.estoque||0)>5).length];
+  const base={chart:{height:280,toolbar:{show:true},animations:{enabled:true}},colors:["#c2571f","#1e7a4c","#2b6cb0","#8a5a00","#6b5ce7","#b42318"]};
+  function mk(id,opts){ const el=document.getElementById(id); if(!el) return; if(_charts[id]) _charts[id].destroy(); _charts[id]=new ApexCharts(el,Object.assign({},base,opts)); _charts[id].render(); }
+  mk("chartCat",{chart:{type:"donut"},series:counts,labels:cats,legend:{position:"bottom"},dataLabels:{enabled:true}});
+  mk("chartStockVal",{chart:{type:"bar"},series:[{name:"Valor em estoque (R$)",data:vals}],xaxis:{categories:cats},yaxis:{labels:{formatter:function(v){return "R$ "+Number(v).toLocaleString("pt-BR");}}},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:6,distributed:true}}});
+  mk("chartOrders",{chart:{type:"bar"},series:[{name:"Pedidos",data:ordCounts}],xaxis:{categories:statuses},dataLabels:{enabled:false},plotOptions:{bar:{borderRadius:6,distributed:true}}});
+  mk("chartStockBand",{chart:{type:"donut"},series:bands,labels:["Zerado","Baixo (1-5)","OK (6+)"],colors:["#b42318","#d9a441","#1e7a4c"],legend:{position:"bottom"},dataLabels:{enabled:true}});
+  const n=document.getElementById("chartOrdersNote"); if(n) n.textContent = state.orders.length ? state.orders.length+" pedido(s) registrado(s) no total." : "Nenhum pedido registrado ainda - o gráfico fica zerado até o primeiro pedido.";
+}
+function renderProducts(){
+  const q = (document.getElementById("prodSearch").value||"").toLowerCase(), cat = document.getElementById("prodCat").value, st = document.getElementById("prodStock").value;
+  const list = state.products.filter(p=>{
+    if(cat && p.categoria!==cat) return false;
+    if(st==="zero" && (p.estoque||0)!==0) return false;
+    if(st==="low" && !((p.estoque||0)>0 && (p.estoque||0)<=5)) return false;
+    if(st==="ok" && (p.estoque||0)<=5) return false;
+    if(q && !(p.nome+" "+p.marca+" "+p.id).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  document.getElementById("prodTable").innerHTML = list.map(p=>`<tr>
+    <td><img class="thumb" src="${photoSrc(p)}" onerror="this.style.display='none'" alt=""><div class="muted">${esc(p.id)}</div></td>
+    <td><b>${esc(p.nome)}</b><br><span class="muted">${esc(p.marca||"")}</span></td>
+    <td class="hide-m">${esc(p.categoria)}<br><span class="muted">${esc(p.subcategoria||"")}</span></td>
+    <td>${brl(p.preco)}</td><td>${p.estoque||0}</td>
+    <td>${p.ativo?`<span class="badge green">Ativo</span>`:`<span class="badge">Inativo</span>`} ${p.destaque?`<span class="badge amber">Destaque</span>`:""}</td>
+    <td><button class="ghost" onclick="openProductForm('${p.id}')">Editar</button> <button class="ghost" onclick="duplicateProduct('${p.id}')">Duplicar</button> <button class="ghost" onclick="deleteProduct('${p.id}')">Excluir</button></td>
+  </tr>`).join("") || `<tr><td colspan="7" class="muted">Nenhum produto com esses filtros.</td></tr>`;
+  const subs = [...new Set(state.products.map(p=>p.subcategoria).filter(Boolean))].sort();
+  document.getElementById("subList").innerHTML = subs.map(s=>`<option value="${esc(s)}">`).join("");
+}
+function openProductForm(id){
+  const p = id ? state.products.find(x=>x.id===id) : null; editingPhoto = null;
+  document.getElementById("prodModalTitle").textContent = p ? "Editar produto" : "Novo produto";
+  document.getElementById("fOrigId").value = p ? p.id : "";
+  document.getElementById("fId").value = p ? p.id : nextId("Papelaria");
+  document.getElementById("fBrand").value = p ? (p.marca||"") : "";
+  document.getElementById("fName").value = p ? p.nome : "";
+  document.getElementById("fCat").value = p ? p.categoria : "Papelaria";
+  document.getElementById("fSub").value = p ? (p.subcategoria||"") : "";
+  document.getElementById("fPrice").value = p && p.preco!=null ? p.preco : "";
+  document.getElementById("fStock").value = p ? (p.estoque||0) : 10;
+  document.getElementById("fNoPrice").checked = !!(p && p.preco==null);
+  document.getElementById("fDesc").value = p ? (p.descricao||"") : "";
+  document.getElementById("fSyn").value = p ? (p.sinonimos||[]).join(", ") : "";
+  document.getElementById("fFeat").checked = !!(p && p.destaque);
+  document.getElementById("fActive").checked = p ? p.ativo!==false : true;
+  document.getElementById("photoPreview").textContent = p ? "Foto atual: assets/"+p.id.toLowerCase()+".webp" : "";
+  document.getElementById("fPhoto").value = "";
+  toggleNoPrice(); document.getElementById("prodModal").classList.add("open");
+}
+function suggestId(){ if(!document.getElementById("fOrigId").value) document.getElementById("fId").value = nextId(document.getElementById("fCat").value); }
+function toggleNoPrice(){ document.getElementById("fPrice").disabled = document.getElementById("fNoPrice").checked; }
+function closeProductForm(){ document.getElementById("prodModal").classList.remove("open"); }
+function previewPhoto(e){ const f = e.target.files[0]; if(!f) return; editingPhoto = f; document.getElementById("photoPreview").innerHTML = `Foto escolhida: ${esc(f.name)} — depois de salvar, baixe-a <button class="ghost" onclick="downloadPhoto()">neste botão</button> com o nome assets/<span id="photoName"></span>.webp`; document.getElementById("photoName").textContent = document.getElementById("fId").value.toLowerCase(); }
+function downloadPhoto(){ if(!editingPhoto) return; const a = document.createElement("a"); a.href = URL.createObjectURL(editingPhoto); a.download = document.getElementById("fId").value.toLowerCase()+".webp"; a.click(); }
+function saveProduct(){
+  const orig = document.getElementById("fOrigId").value, id = document.getElementById("fId").value.trim().toUpperCase();
+  const nome = document.getElementById("fName").value.trim();
+  if(!id || !nome){ alert("Preencha ID e nome do produto."); return; }
+  if(!orig && state.products.some(p=>p.id===id)){ alert("Já existe um produto com este ID."); return; }
+  const data = {id, nome, marca:document.getElementById("fBrand").value.trim(), categoria:document.getElementById("fCat").value, subcategoria:document.getElementById("fSub").value.trim(), preco:document.getElementById("fNoPrice").checked?null:parseFloat(document.getElementById("fPrice").value)||0, descricao:document.getElementById("fDesc").value.trim(), sinonimos:document.getElementById("fSyn").value.split(',').map(s=>s.trim()).filter(Boolean), estoque:parseInt(document.getElementById("fStock").value)||0, destaque:document.getElementById("fFeat").checked, ativo:document.getElementById("fActive").checked};
+  if(orig){ const i = state.products.findIndex(p=>p.id===orig); state.products[i] = data; } else state.products.push(data);
+  save(); renderAll(); closeProductForm();
+}
+function duplicateProduct(id){ const p = state.products.find(x=>x.id===id); if(!p) return; const copy = {...p, id:nextId(p.categoria), nome:p.nome+" (cópia)", ativo:true}; state.products.push(copy); save(); renderAll(); openProductForm(copy.id); }
+function deleteProduct(id){ if(!confirm("Excluir este produto do painel? Ele some também da próxima exportação.")) return; state.products = state.products.filter(p=>p.id!==id); save(); renderAll(); }
+function fillOrderProducts(){ document.getElementById("ordProd").innerHTML = state.products.filter(p=>p.ativo).map(p=>`<option value="${p.id}">${esc(p.id)} — ${esc(p.nome)} — ${brl(p.preco)}</option>`).join(""); }
+function addOrderLine(){ const id = document.getElementById("ordProd").value, qty = Math.max(1, parseInt(document.getElementById("ordQty").value)||1); if(!id) return; const ex = orderLines.find(l=>l.id===id); if(ex) ex.qty += qty; else orderLines.push({id, qty}); renderOrderLines(); }
+function renderOrderLines(){ const rows = orderLines.map((l,i)=>{ const p = state.products.find(x=>x.id===l.id); const unit = p?p.preco:0; return `<div>${esc(p?p.nome:l.id)} — ${l.qty}x ${brl(unit)} = <b>${brl(unit==null?0:unit*l.qty)}</b> <button class="ghost" onclick="orderLines.splice(${i},1);renderOrderLines()">Remover</button></div>`; }).join(""); const total = orderLines.reduce((s,l)=>{ const p = state.products.find(x=>x.id===l.id); return s+(p&&p.preco?p.preco*l.qty:0); },0); document.getElementById("ordLines").innerHTML = rows || "<span class='muted'>Nenhum item ainda.</span>"; document.getElementById("ordTotal").textContent = "Total: "+brl(total)+" · No Pix ("+state.settings.pix+"% OFF): "+brl(total*(1-state.settings.pix/100)); }
+function saveOrder(){
+  if(!orderLines.length){ alert("Adicione pelo menos um item ao pedido."); return; }
+  const total = orderLines.reduce((s,l)=>{ const p = state.products.find(x=>x.id===l.id); return s+(p&&p.preco?p.preco*l.qty:0); },0);
+  const n = Math.max(0,...state.orders.map(o=>parseInt(o.id.replace("PED-",""))||0))+1;
+  state.orders.push({id:"PED-"+String(n).padStart(3,"0"), cliente:document.getElementById("ordClient").value.trim(), whatsapp:document.getElementById("ordWa").value.trim(), pagamento:document.getElementById("ordPay").value, status:document.getElementById("ordStatus").value, itens:orderLines.map(l=>({...l})), total, data:new Date().toLocaleDateString("pt-BR"), obs:document.getElementById("ordNote").value.trim()});
+  orderLines = []; document.getElementById("ordClient").value=""; document.getElementById("ordWa").value=""; document.getElementById("ordNote").value=""; save(); renderAll(); renderOrderLines(); alert("Pedido salvo.");
+}
+function renderOrders(){
+  fillOrderProducts();
+  document.getElementById("ordTable").innerHTML = state.orders.slice().reverse().map(o=>{ const itens = o.itens.map(l=>{ const p = state.products.find(x=>x.id===l.id); return `${l.qty}x ${esc(p?p.nome:l.id)}`; }).join("<br>"); return `<tr><td><b>${esc(o.id)}</b><br><span class="muted">${esc(o.data)}</span></td><td>${esc(o.cliente||"—")}<br><span class="muted">${esc(o.whatsapp||"")}</span></td><td>${itens}</td><td>${brl(o.total)}</td><td><select onchange="changeOrderStatus('${o.id}',this.value)"><option ${o.status==="Pendente"?"selected":""}>Pendente</option><option ${o.status==="Pago"?"selected":""}>Pago</option><option ${o.status==="Separado"?"selected":""}>Separado</option><option ${o.status==="Enviado / Retirada"?"selected":""}>Enviado / Retirada</option><option ${o.status==="Entregue"?"selected":""}>Entregue</option><option ${o.status==="Cancelado"?"selected":""}>Cancelado</option></select></td><td><button class="ghost" onclick="deleteOrder('${o.id}')">Excluir</button></td></tr>`; }).join("") || `<tr><td colspan="6" class="muted">Nenhum pedido registrado.</td></tr>`;
+}
+function changeOrderStatus(id, v){ const o = state.orders.find(x=>x.id===id); if(o){ o.status=v; save(); renderDashboard(); } }
+function deleteOrder(id){ if(!confirm("Excluir este pedido?")) return; state.orders = state.orders.filter(o=>o.id!==id); save(); renderAll(); }
+function renderSettings(){ const s = state.settings; document.getElementById("setPixKey").value=s.pixKey||""; document.getElementById("setWa").value=s.whatsapp; document.getElementById("setAddr").value=s.endereco; document.getElementById("setHours1").value=s.hours1; document.getElementById("setHours2").value=s.hours2; document.getElementById("setPix").value=s.pix; document.getElementById("setShip").value=s.ship; }
+function saveSettings(){ state.settings = {pixKey:document.getElementById("setPixKey").value.trim(), whatsapp:document.getElementById("setWa").value.replace(/\D/g,""), endereco:document.getElementById("setAddr").value.trim(), hours1:document.getElementById("setHours1").value.trim(), hours2:document.getElementById("setHours2").value.trim(), pix:parseFloat(document.getElementById("setPix").value)||5, ship:parseFloat(document.getElementById("setShip").value)||199}; save(); renderAll(); alert("Dados da loja salvos."); }
+function renderBanners(){ document.getElementById("bannerList").innerHTML = BANNERS.map((b,i)=>`<div class="row" style="align-items:center;border-bottom:1px solid var(--line);padding:8px 0"><div><b>${esc(b[1])}</b><br><span class="muted">assets/${b[0]}</span></div><div><input type="file" accept="image/*" onchange="bannerChosen(${i},this.files[0])"></div><div id="bannerOut${i}"></div></div>`).join(""); }
+function bannerChosen(i, f){ if(!f) return; const out = document.getElementById("bannerOut"+i); const a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = BANNERS[i][0]; a.textContent = "Baixar como "+BANNERS[i][0]; a.className = "btn"; a.style.textDecoration="none"; out.innerHTML=""; out.appendChild(a); }
+function downloadFile(name, text, type){ const blob = new Blob([text], {type:type||"application/json"}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
+function storeProductArray(){
+  const active = state.products.filter(p=>p.ativo);
+  const escQ = s => String(s==null?"":s).replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+  return active.map(p=>`{id:'${escQ(p.id)}',nome:'${escQ(p.nome)}',marca:'${escQ(p.marca||"")}',categoria:'${escQ(p.categoria)}',subcategoria:'${escQ(p.subcategoria||"")}',preco:${p.preco==null?"null":p.preco},descricao:'${escQ(p.descricao||"")}',destaque:${p.destaque?"true":"false"},sinonimos:[${(p.sinonimos||[]).map(s=>"'"+escQ(s)+"'").join(",")}]} `).join(",\n  ");
+}
+function downloadProdutosJson(){
+  const out = {loja:"Informaster", cidade:"Ilhéus/BA", bairro:"Barra de Itaípe", moeda:"BRL", observacao:"Catálogo exportado pelo painel administrativo.", produtos: state.products.map(p=>({categoria:p.categoria, descricao:p.descricao||"", destaque:!!p.destaque, estoque:p.estoque||0, id:p.id, marca:p.marca||"", nome:p.nome, preco:p.preco==null?0:p.preco, subcategoria:p.subcategoria||"", sinonimos:p.sinonimos||[]}))};
+  downloadFile("produtos.json", JSON.stringify(out, null, 2));
+}
+function importStore(e){ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{ storeHtml = r.result; document.getElementById("storeFileState").textContent = "Importado: "+f.name+" ("+Math.round(f.size/1024)+" KB). Pronto para exportar o index.html atualizado."; }; r.readAsText(f); }
+function downloadStoreHtml(){
+  if(!storeHtml){ alert("Importe primeiro o index.html atual na aba Exportar / Publicar."); showTab("exportar"); return; }
+  const re = /const products = \[.*?\];/s;
+  if(!re.test(storeHtml)){ alert("Não encontrei a lista de produtos neste arquivo. Confira se é o index.html da loja Informaster."); return; }
+  let out = storeHtml.replace(re, "const products = [\n  "+storeProductArray()+"\n  ];");
+  if(state.settings.whatsapp && state.settings.whatsapp !== storeOrigWa) out = out.split(storeOrigWa).join(state.settings.whatsapp);
+  if(state.settings.pixKey){ out = out.replace(/const PIX_KEY = "[^"]*";/, "const PIX_KEY = \""+state.settings.pixKey.replace(/\\/g,"\\\\").replace(/"/g,"\\\"")+"\";"); }
+  downloadFile("index.html", out, "text/html");
+}
+
+function ghTokenGet(){ return (localStorage.getItem("informaster_gh_token")||"").trim() || document.getElementById("ghToken").value.trim(); }
+function refreshGhTokenStatus(){ const el=document.getElementById("ghTokenStatus"); if(!el) return; el.textContent = localStorage.getItem("informaster_gh_token") ? "Token salvo neste navegador." : "Nenhum token salvo neste navegador."; }
+function saveGhToken(){ const v=document.getElementById("ghToken").value.trim(); if(!v){ alert("Cole o token fino primeiro."); return; } localStorage.setItem("informaster_gh_token", v); refreshGhTokenStatus(); alert("Token salvo só neste navegador. Nunca cole ele no chat nem em arquivo."); }
+function clearGhToken(){ localStorage.removeItem("informaster_gh_token"); document.getElementById("ghToken").value=""; refreshGhTokenStatus(); }
+function b64EncodeUnicode(str){ const bytes=new TextEncoder().encode(str); let bin=""; const chunk=0x8000; for(let i=0;i<bytes.length;i+=chunk){ bin+=String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); } return btoa(bin); }
+function b64DecodeUnicode(b64){ const bin=atob(String(b64).replace(/\s/g,"")); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i); return new TextDecoder().decode(bytes); }
+function buildUpdatedStoreHtml(baseHtml){
+  const re = /const products = \[.*?\];/s;
+  if(!re.test(baseHtml)) throw new Error("Não encontrei a lista de produtos no index.html do teste.");
+  let out = baseHtml.replace(re, "const products = [\n  "+storeProductArray()+"\n  ];");
+  const activeCount = state.products.filter(p=>p.ativo).length;
+  out = out.replace(/\d+ produtos entre papelaria/, activeCount+" produtos entre papelaria");
+  if(state.settings.whatsapp && state.settings.whatsapp !== storeOrigWa) out = out.split(storeOrigWa).join(state.settings.whatsapp);
+  if(state.settings.pixKey){ out = out.replace(/const PIX_KEY = "[^"]*";/, "const PIX_KEY = \""+state.settings.pixKey.replace(/\\/g,"\\\\").replace(/"/g,"\\\"")+"\";"); }
+  return out;
+}
+async function publishToTest(){
+  const status=document.getElementById("publishStatus");
+  const token=ghTokenGet();
+  if(!token){ status.textContent="Falta o token fino. Cole e salve o token acima antes de publicar."; return; }
+  if(!confirm("Publicar no site de TESTE (SilvioBSan/informaster-teste)? O site oficial NÃO será tocado.")) return;
+  try{
+    status.textContent="Buscando o index.html atual do teste…";
+    const url="https://api.github.com/repos/SilvioBSan/informaster-teste/contents/index.html?ref=main";
+    const headers={"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json"};
+    const getRes=await fetch(url,{headers});
+    const getData=await getRes.json().catch(()=>({}));
+    if(!getRes.ok) throw new Error("GitHub recusou a leitura ("+getRes.status+"): "+(getData.message||"verifique o token e o acesso ao repo de teste."));
+    const baseHtml=b64DecodeUnicode(getData.content||"");
+    const out=buildUpdatedStoreHtml(baseHtml);
+    status.textContent="Enviando o index.html atualizado para o teste…";
+    const putRes=await fetch(url,{method:"PUT",headers:{"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","Content-Type":"application/json"},body:JSON.stringify({message:"Publicar pelo painel — teste",content:b64EncodeUnicode(out),sha:getData.sha,branch:"main"})});
+    const putData=await putRes.json().catch(()=>({}));
+    if(!putRes.ok) throw new Error("GitHub recusou a publicação ("+putRes.status+"): "+(putData.message||"verifique o token e o acesso ao repo de teste."));
+    const sha=(putData.commit&&putData.commit.sha)||"";
+    status.textContent="Publicado no TESTE! Commit "+sha.slice(0,7)+" em "+new Date().toLocaleString("pt-BR")+". Aguarde 1–2 minutos e recarregue https://silviobsan.github.io/informaster-teste/ para conferir. O oficial não foi tocado.";
+  }catch(err){
+    status.textContent="Erro ao publicar: "+err.message;
+  }
+}
+function downloadBackup(){ downloadFile("informaster-painel-backup.json", JSON.stringify(state, null, 2)); }
+function importBackup(e){ const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{ try{ const s = JSON.parse(r.result); if(!Array.isArray(s.products)) throw 0; state = {products:s.products, orders:s.orders||[], settings:s.settings||defaultSettings()}; save(); renderAll(); alert("Backup importado."); }catch(err){ alert("Arquivo de backup inválido."); } }; r.readAsText(f); }
+function resetCatalog(){ if(!confirm("Restaurar o catálogo original? Suas edições de produtos serão perdidas (pedidos ficam).")) return; state.products = JSON.parse(JSON.stringify(INITIAL_PRODUCTS)).map(p=>({...p, preco:p.preco===0?null:p.preco, ativo:true})); save(); renderAll(); }
+function clearAll(){ if(!confirm("Apagar TODOS os dados locais do painel, incluindo pedidos e PIN?")) return; localStorage.removeItem(LS); localStorage.removeItem(LS_PIN); location.reload(); }
+function pinSetup(){
+  const stored = localStorage.getItem(LS_PIN);
+  if(stored === null){ document.getElementById("pinText").textContent = "Defina um PIN para este painel neste aparelho."; }
+  else if(stored === ""){ document.getElementById("pinBack").style.display = "none"; return; }
+  else { document.getElementById("pinText").textContent = "Digite o PIN do painel."; document.getElementById("pinForgotWrap").style.display = "block"; }
+}
+function pinSubmit(){
+  const v = document.getElementById("pinInput").value.trim(), stored = localStorage.getItem(LS_PIN);
+  if(stored === null){ if(v && v.length < 4){ alert("O PIN precisa ter no mínimo 4 dígitos, ou deixe em branco para entrar sem PIN."); return; } localStorage.setItem(LS_PIN, v); document.getElementById("pinBack").style.display = "none"; }
+  else if(v === stored){ document.getElementById("pinBack").style.display = "none"; }
+  else alert("PIN incorreto.");
+}
+function pinForgot(){ if(confirm("Apagar dados locais e recomeçar do zero?")){ localStorage.removeItem(LS); localStorage.removeItem(LS_PIN); location.reload(); } }
+pinSetup(); renderAll(); renderOrderLines(); refreshGhTokenStatus();
+</script>
+</body>
+</html>
